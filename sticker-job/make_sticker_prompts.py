@@ -1,6 +1,15 @@
 import argparse
 
 
+STYLE_PROMPT = """\
+ออกแบบเป็นสติ๊กเกอร์ไดคัทคู่รัก 2 คนจากภาพอ้างอิง
+คงใบหน้า ทรงผม และเอกลักษณ์ของทั้งสองคนให้ใกล้เคียงภาพต้นฉบับ
+สไตล์น่ารัก กวนๆ เป็นกันเอง สีสดใสแบบพาสเทล
+เส้นขอบสีขาวหนารอบตัวละคร รูปทรงสติ๊กเกอร์ชัดเจน
+พื้นหลังโปร่งใส (transparent background) ไม่มีกรอบสี่เหลี่ยม
+จัดองค์ประกอบให้เห็นท่าทางชัด อ่านคำพูดง่าย
+ใช้ตัวอักษรภาษาไทยตัวหนา น่ารัก และสะกดตามข้อความที่กำหนดอย่างถูกต้อง"""
+
 STICKERS = [
     {"phrase": "เออ…ก็ได้", "pose": "ทั้งคู่ยืนกอดอก คนหนึ่งทำหน้ามึน อีกคนยักไหล่แบบยอมก็ได้"},
     {"phrase": "แน่ใจนะ?", "pose": "ทั้งคู่เอียงคอมองหน้ากัน ทำตาโตและยกคิ้วอย่างสงสัย"},
@@ -29,7 +38,7 @@ STICKERS = [
 ]
 
 
-def make_prompt(sticker, style_prompt):
+def make_prompt(sticker, style_prompt=STYLE_PROMPT):
     return f"""\
 {style_prompt}
 
@@ -44,16 +53,58 @@ def make_prompt(sticker, style_prompt):
 สร้างเป็นสติ๊กเกอร์เดี่ยว 1 แบบต่อ 1 ภาพ"""
 
 
+def make_full_set_prompt(style_prompt=STYLE_PROMPT):
+    sticker_list = "\n".join(
+        f"{index}. {sticker['phrase']} — {sticker['pose']}"
+        for index, sticker in enumerate(STICKERS, start=1)
+    )
+    return f"""\
+{style_prompt}
+
+สร้างชุดสติ๊กเกอร์คู่รักน่ารักๆ กวนๆ จำนวน {len(STICKERS)} แบบ
+ใช้คู่รักจากภาพอ้างอิงเป็นตัวละครหลัก และคงใบหน้า ทรงผม
+และเอกลักษณ์ของทั้งสองคนให้ใกล้เคียงภาพต้นฉบับ
+ใช้สไตล์เดียวกันทุกภาพ แต่ละภาพเป็นสติ๊กเกอร์ไดคัทเดี่ยว 1 แบบ
+โดยให้ท่าทาง สีหน้า และการจัดวางคำพูดแตกต่างกัน
+
+ข้อความและท่าทางในแต่ละภาพ:
+{sticker_list}
+
+ห้ามใส่ข้อความอื่นนอกเหนือจากรายการ"""
+
+
 def main():
     parser = argparse.ArgumentParser(
-        description="สร้างและพิมพ์พรอมป์ต์สำหรับสติ๊กเกอร์ทั้ง 24 แบบ"
+        description="สร้างพรอมป์ต์สำหรับสติ๊กเกอร์ 24 แบบ"
     )
     parser.add_argument(
         "--style-prompt",
-        default="สไตล์สติ๊กเกอร์การ์ตูนน่ารัก สีสันสดใส",
+        default=STYLE_PROMPT,
         help="คำอธิบายสไตล์ภาพ",
     )
+    prompt_group = parser.add_mutually_exclusive_group()
+    prompt_group.add_argument(
+        "--all-in-one",
+        action="store_true",
+        help="พิมพ์พรอมป์ต์รวมสำหรับสร้างทั้งชุดในครั้งเดียว",
+    )
+    prompt_group.add_argument(
+        "--sticker",
+        type=int,
+        metavar="NUMBER",
+        help="พิมพ์พรอมป์ต์สติ๊กเกอร์หมายเลข 1-24",
+    )
     args = parser.parse_args()
+
+    if args.all_in_one:
+        print(make_full_set_prompt(args.style_prompt))
+        return
+
+    if args.sticker is not None:
+        if not 1 <= args.sticker <= len(STICKERS):
+            parser.error(f"--sticker ต้องเป็นหมายเลข 1-{len(STICKERS)}")
+        print(make_prompt(STICKERS[args.sticker - 1], args.style_prompt))
+        return
 
     for index, sticker in enumerate(STICKERS, start=1):
         print(f"--- สติ๊กเกอร์ที่ {index} ---")
